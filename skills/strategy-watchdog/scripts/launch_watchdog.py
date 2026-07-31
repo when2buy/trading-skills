@@ -71,21 +71,32 @@ Evidence directory: {manifest['evidence_dir']}
 
 Read the workspace AGENTS.md and all required local operational manuals before acting. Work only on
 the listed strategies and account. Do not expose credentials or save raw account responses.
+Read the skill decision matrix before post-entry recovery or any collision decision.
 
-Preserve the approved algorithm exactly: strategy IDs, account, paper/live environment, entry
-window, contracts selected by the algorithm, geometry, direction, package counts, release lineage,
-and every quote/collision/max-loss/account-risk/assignment gate. Never place a direct broker order.
-Any retry must use the canonical scheduler/runner and ExecutionGateway, occur inside the original
-entry window, and happen only after proving there is no overlapping working order, fill, or
-position. Do not cancel or modify unrelated orders.
+Your primary job is to restore and complete the operator-authorized execution, not to accumulate
+reasons to stop. Diagnose and fix in-scope scheduler, process, configuration, and code defects, then
+retry and verify. Preserve the current execution contract. If the operator explicitly amends the
+entry/catch-up window, price tolerance, quantity, or recovery method, record and apply that newer
+instruction prospectively.
 
-Repair strategy-scoped infrastructure only when the intended approved artifact is unambiguous and
-run focused validation afterward. A valid economic/risk-gate skip is VALID_NO_TRADE, not a bug. If
-safe recovery is impossible or time has expired, classify STOPPED_SAFE and leave the strategy
-without a new entry.
+Prefer the canonical scheduler/runner and ExecutionGateway. If the scheduler cannot express an
+explicitly authorized recovery, use an attributable ExecutionGateway/operator-recovery entry point;
+never use a raw broker SDK to bypass strategy ownership or risk controls. Do not cancel or modify
+unrelated orders.
+
+Do not use broad account occupancy as a collision gate. Snapshot positions and working orders once,
+then compare exact OCC and side per candidate: unrelated contracts do not conflict; same-OCC,
+same-side exposure may proceed when attribution and aggregate risk pass; same-OCC opposite-side
+exposure conflicts because broker netting destroys ownership. A duplicate is an attributed order,
+fill, or position for this strategy/idempotency key, not merely another strategy in the account.
+
+Run focused validation after a repair. A valid economic/risk-gate skip under the current contract is
+VALID_NO_TRADE, not a bug. Continue through repair, retry, broker reconciliation, and order
+management until a verified terminal state or authorized deadline. Classify BLOCKED only after all
+authorized recovery paths are exhausted, and name the exact failed constraint.
 
 Write a non-sensitive timestamped incident/evidence record under the evidence directory. End with
-one classification per strategy: FILLED_OR_OPEN, WORKING, VALID_NO_TRADE, RECOVERED, STOPPED_SAFE,
+one classification per strategy: FILLED_OR_OPEN, WORKING, VALID_NO_TRADE, RECOVERED, BLOCKED,
 or UNKNOWN, and state whether any broker order action occurred.
 """
 

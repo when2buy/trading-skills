@@ -140,7 +140,7 @@ def main() -> int:
     pre_at = entry - timedelta(minutes=args.pre_minutes)
     post_at = entry + timedelta(minutes=args.post_minutes)
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "watchdog_id": job_id,
         "workspace": str(workspace),
         "run_date": args.run_date,
@@ -154,12 +154,15 @@ def main() -> int:
             "strategy_ids",
             "account_profile",
             "environment",
-            "entry_at",
-            "geometry",
             "direction",
-            "package_count",
-            "risk_gates",
             "release_lineage",
+        ],
+        "operator_amendable_fields": [
+            "catch_up_deadline",
+            "price_tolerance",
+            "package_count",
+            "geometry",
+            "recovery_method",
         ],
         "checks": {
             "pre": pre_at.isoformat(),

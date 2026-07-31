@@ -6,7 +6,7 @@ Reusable Codex skills for trading research, deployment, execution monitoring, an
 
 | Skill | Purpose |
 |---|---|
-| [Strategy Watchdog](skills/strategy-watchdog/SKILL.md) | Attach T-5 readiness and T+2 execution checks to a scheduled paper or live strategy, recover bounded infrastructure failures, prevent duplicate orders, and fail closed when safe recovery is impossible. |
+| [Strategy Watchdog](skills/strategy-watchdog/SKILL.md) | Attach T-5 readiness and T+2 execution checks, repair execution defects, retry through attributable canonical paths, and prevent only precise duplicate or direction conflicts. |
 
 ## Install
 

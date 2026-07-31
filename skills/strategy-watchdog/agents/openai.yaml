@@ -1,4 +1,4 @@
 interface:
   display_name: "Strategy Watchdog"
-  short_description: "Monitor scheduled strategy execution and recover safe failures"
-  default_prompt: "Use $strategy-watchdog to attach pre-entry and post-entry monitoring to a scheduled strategy run."
+  short_description: "Repair failures and drive strategy execution to completion"
+  default_prompt: "Use $strategy-watchdog to monitor, repair, retry, and verify this scheduled strategy execution."
