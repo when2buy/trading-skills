@@ -1,13 +1,27 @@
 ---
 name: strategy-watchdog
-description: Attach time-bounded Codex monitoring to scheduled paper or live strategy executions, with a pre-entry readiness check and a post-entry execution check, evidence capture, safe infrastructure recovery, duplicate-order prevention, and fail-closed handling. Use when a user asks to monitor, watchdog, babysit, check, recover, or schedule checks around a trading strategy run, especially at T-5 minutes and T+2 minutes.
+description: Monitor and actively recover scheduled paper or live strategy executions, including pre-entry readiness, post-entry reconciliation, bug repair, canonical retry, operator-authorized catch-up, evidence capture, and precise duplicate/conflict prevention. Use when a user asks to monitor, watchdog, babysit, fix, recover, or drive a trading strategy run to its intended terminal outcome, especially around T-5 and T+2.
 ---
 
 # Strategy Watchdog
 
-Monitor a named strategy execution without changing its economic intent. Prefer a correctly
-completed canonical execution; accumulate operational evidence; stop the run when safe recovery is
-not possible.
+Drive a named strategy execution to its authorized terminal outcome. Observe, diagnose, repair,
+retry, and verify rather than merely reporting why execution stopped. Preserve the current operator
+contract and real economic/risk constraints, but never turn broad or ambiguous safety checks into a
+reason to block an otherwise valid execution.
+
+## Operating priority
+
+Use this order of priorities:
+
+1. Complete the operator-authorized strategy execution through the canonical system.
+2. Prevent only proven duplicate, opposite-direction netting, account, or risk-limit violations.
+3. Repair bugs and infrastructure defects that prevent execution, then retry and verify.
+4. Preserve evidence and report an unresolved blocker only after exhausting in-scope recovery.
+
+Treat the operator's latest explicit instruction as an amendment to the execution contract. It may
+change the catch-up deadline, price tolerance, quantity, or recovery method. Record the old and new
+values and apply the amendment prospectively; do not silently infer an amendment.
 
 ## Establish the contract
 
@@ -17,7 +31,7 @@ Record these fields before installing a watchdog:
 - strategy IDs, symbols, account profile, and paper/live environment
 - scheduled entry timestamp and timezone
 - canonical scheduler, runner, registry, state store, and execution gateway
-- approved repair scope and immutable trading parameters
+- approved repair scope, current trading parameters, and operator-authorized amendments
 - evidence/log directory
 
 For AlphaVault-managed strategies, read the AlphaVault Ops manual and current agent updates at every
@@ -58,12 +72,12 @@ Remain read-only toward the broker. Verify:
 2. Exact strategy registration, enabled state, runtime config, release lineage, and package count.
 3. Independent scheduler presence, executable child command, process/lock health, and writable logs.
 4. Quote/contract discovery availability without treating availability as fillability.
-5. Existing positions and working/recent orders for duplicate or OCC collisions.
+5. Existing positions and working/recent orders, indexed by attribution, OCC, and side.
 
-Repair only non-economic infrastructure defects such as a missing exact cron line, a dead expected
-process, a stale strategy-scoped lock whose owner is conclusively gone, or a release/config
-misalignment where the already-approved canonical artifact is unambiguous. Re-run focused tests
-after repair. Do not submit an early order during the pre-check.
+Repair in-scope defects such as a missing cron line, dead process, stale strategy-scoped lock,
+release/config mismatch, overly broad collision guard, or another code bug that prevents an
+approved execution. Re-run focused tests after a code repair. Do not submit before the authorized
+entry window.
 
 ## T+2 post-entry check
 
@@ -75,28 +89,50 @@ positions, and rejection messages. Classify each strategy independently:
 - `VALID_NO_TRADE`: the algorithm intentionally rejected the opportunity through an economic or
   risk gate.
 - `RECOVERED`: an infrastructure failure was safely repaired and the canonical runner retried.
-- `STOPPED_SAFE`: execution cannot be recovered without violating intent or safety.
+- `BLOCKED`: a specific unresolved constraint prevents execution after recovery was exhausted.
 - `UNKNOWN`: evidence is incomplete; do not guess or duplicate.
 
-Treat quote freshness, minimum credit, spread quality, max loss, buying power, collision, assignment,
-and account-risk checks as algorithmic gates. Never weaken them merely to force a fill.
+Treat quote freshness, minimum credit, spread quality, max loss, buying power, assignment, and
+account-risk checks as algorithmic gates under the current execution contract. An explicit operator
+amendment may change an economic parameter; record it and re-run the affected checks.
+
+Do not treat account occupancy as a global collision. Build one broker snapshot, then compare each
+candidate leg by exact OCC and side:
+
+- unrelated OCC contracts do not conflict;
+- same OCC and same side may coexist when attribution and aggregate risk remain valid;
+- same OCC and opposite side conflicts because a netting broker can erase strategy ownership;
+- an attributed working/fill for the same strategy and idempotency key is a duplicate;
+- uncertain data triggers reconciliation, not an immediate permanent stop.
+
+For shared accounts, normalize the snapshot and run
+`scripts/check_occ_conflicts.py --input snapshot.json`. Use its candidate-level result as evidence;
+do not replace it with an underlying-wide or account-wide occupancy check.
 
 ## Recovery ladder
 
-Apply the first sufficient action and stop:
+Apply the first sufficient action, then continue until execution reaches a verified terminal state:
 
 1. Re-read current state and distinguish broker latency from failure.
 2. Repair a strategy-scoped scheduler, process, path, permission, config, or stale-lock defect.
-3. Retry only through the canonical scheduler/runner and execution gateway when all are true:
-   - the original entry window remains open;
-   - no attributed or overlapping working order, fill, or position exists;
-   - idempotency and collision checks are active;
-   - geometry, direction, lots, account, release, and risk gates remain unchanged.
-4. Otherwise mark `STOPPED_SAFE` for that run and preserve the reason.
+3. Fix the blocking code or configuration bug when intended behavior is established by tests,
+   config, runbook, or an explicit operator instruction.
+4. Retry through the canonical scheduler/runner and execution gateway when:
+   - the original window or an explicitly authorized catch-up window remains open;
+   - no attributed duplicate exists for this strategy/idempotency key;
+   - exact OCC/side reconciliation permits the candidate;
+   - the current geometry, account, quantity, price tolerance, and risk gates pass.
+5. If the canonical scheduler cannot express an explicitly authorized recovery, use the canonical
+   ExecutionGateway/operator-recovery entry point with attributable client-order IDs. Never call a
+   raw broker SDK merely to bypass the strategy system.
+6. Reconcile broker orders, fills, positions, and management registration. Continue monitoring a
+   working order until its authorized deadline.
+7. Mark `BLOCKED` only with a concrete failed constraint and after all authorized recovery paths are
+   exhausted.
 
-Never place a direct/manual broker order, invent substitute contracts, extend the entry window,
-change sizing, cross accounts, cancel unrelated orders, or bypass ownership/risk/quote gates. A
-profit objective does not justify taking a different trade from the approved algorithm.
+Never invent substitute contracts, cross accounts, cancel unrelated orders, or bypass attribution
+and risk controls. Do not preserve a stale scheduler window, price tolerance, or collision rule
+after the operator explicitly amends it.
 
 Read `references/decision-matrix.md` when diagnosing ambiguous post-entry outcomes.
 
