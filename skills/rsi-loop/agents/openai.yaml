@@ -1,0 +1,4 @@
+interface:
+  display_name: "RSI Loop"
+  short_description: "Bootstrap and run a human + agent + repo self-improvement loop"
+  default_prompt: "Use $rsi-loop to set up the repo skeleton and run one measured improvement round on this system."
