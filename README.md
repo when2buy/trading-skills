@@ -7,6 +7,7 @@ Reusable Codex skills for trading research, deployment, execution monitoring, an
 | Skill | Purpose |
 |---|---|
 | [Strategy Watchdog](skills/strategy-watchdog/SKILL.md) | Attach T-5 readiness and T+2 execution checks to a scheduled paper or live strategy, recover bounded infrastructure failures, prevent duplicate orders, and fail closed when safe recovery is impossible. |
+| [RSI Loop](skills/rsi-loop/SKILL.md) | Bootstrap and run a human + agent + repo recursive self-improvement loop: day-0 repo setup, the seven-step improvement round, measurement rules, safe agent delegation, and a re-verifiable research ledger. Domain-neutral; also useful for strategy research rounds. |
 
 ## Install
 
@@ -15,12 +16,14 @@ Clone this repository, then copy the desired skill directory into the Codex skil
 ```bash
 git clone https://github.com/when2buy/trading-skills.git
 cp -R trading-skills/skills/strategy-watchdog ~/.codex/skills/
+cp -R trading-skills/skills/rsi-loop ~/.codex/skills/       # also works under ~/.claude/skills/
 ```
 
 Invoke it with:
 
 ```text
 $strategy-watchdog
+$rsi-loop
 ```
 
 ## Repository contract
